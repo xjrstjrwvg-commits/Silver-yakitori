@@ -132,12 +132,26 @@ function hiraToKata(str) {
     );
 }
 
-// 長音（ー）を無視して1文字に正規化
-function normalizeHeadTail(ch) {
-    if (!ch) return "";
-    ch = hiraToKata(ch);
-    ch = ch.replace(/ー/g, ""); // 長音削除
-    return ch[0] || "";
+// 先頭文字の正規化（長音は来ないので単純）
+function normalizeHead(word) {
+    if (!word) return "";
+    word = hiraToKata(word);
+    return word[0] === "ー" ? "" : word[0];
+}
+
+// 末尾文字の正規化（長音は直前の文字を使う）
+function normalizeTail(word) {
+    if (!word) return "";
+    word = hiraToKata(word);
+
+    let last = word.slice(-1);
+
+    if (last === "ー") {
+        if (word.length >= 2) {
+            last = word[word.length - 2];
+        }
+    }
+    return last;
 }
 
 // 国数 ±
@@ -159,8 +173,8 @@ function countChainsByStartEnd(list, N, startFilter) {
     const tailsSet = new Set();
     for (const w of list) {
         if (!w) continue;
-        headsSet.add(normalizeHeadTail(w[0]));
-        tailsSet.add(normalizeHeadTail(w.slice(-1)));
+        headsSet.add(normalizeHead(w));
+        tailsSet.add(normalizeTail(w));
     }
 
     // 開始字フィルタ
@@ -186,25 +200,25 @@ function countChainsByStartEnd(list, N, startFilter) {
     // DFS
     function dfs(chain) {
         if (chain.length === N) {
-            const s = normalizeHeadTail(chain[0][0]);
-            const e = normalizeHeadTail(chain[N - 1].slice(-1));
+            const s = normalizeHead(chain[0]);
+            const e = normalizeTail(chain[N - 1]);
             const key = `${s}→${e}`;
             if (result[key] !== undefined) result[key]++;
             return;
         }
 
         const last = chain[chain.length - 1];
-        const nextHead = normalizeHeadTail(last.slice(-1));
+        const nextHead = normalizeTail(last);
 
         for (const w of list) {
             if (chain.includes(w)) continue;
-            if (normalizeHeadTail(w[0]) !== nextHead) continue;
+            if (normalizeHead(w) !== nextHead) continue;
             dfs([...chain, w]);
         }
     }
 
     for (const w of list) {
-        if (startFilter && normalizeHeadTail(w[0]) !== startFilter) continue;
+        if (startFilter && normalizeHead(w) !== startFilter) continue;
         dfs([w]);
     }
 
@@ -226,8 +240,11 @@ function runCount() {
         const N = Number(document.getElementById("chainN").value);
         const dictMode = document.getElementById("dictMode").value;
 
-        let startChar = normalizeHeadTail(document.getElementById("startChar").value.trim());
-        let endChar   = normalizeHeadTail(document.getElementById("endChar").value.trim());
+        let startChar = document.getElementById("startChar").value.trim();
+        let endChar   = document.getElementById("endChar").value.trim();
+
+        startChar = startChar ? normalizeHead(startChar) : "";
+        endChar   = endChar   ? normalizeHead(endChar)   : "";
 
         const zeroFilter = document.getElementById("zeroFilter").value;
         const sortMode   = document.getElementById("sortMode").value;
