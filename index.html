@@ -139,6 +139,23 @@ button.mainBtn {
         <option value="only">0件のみ</option>
     </select>
 </div>
+
+<!-- ソート -->
+<div class="card">
+    <label>ソート順</label><br><br>
+    <select id="sortMode" style="width:100%;">
+        <option value="gojuon">50音順</option>
+        <option value="asc">少ない順</option>
+        <option value="desc">多い順</option>
+        <option value="random">ランダム</option>
+    </select>
+</div>
+
+<!-- 実行ボタン -->
+<div class="card">
+    <button class="mainBtn" onclick="runCount()">集計する</button>
+</div>
+
 <!-- 結果カード -->
 <div id="result"></div>
 
