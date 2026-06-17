@@ -14,7 +14,7 @@ body {
     margin: auto;
 }
 
-/* カード（設定項目） */
+/* カード */
 .card {
     background: #fff;
     padding: 10px;
@@ -23,7 +23,7 @@ body {
     margin-bottom: 10px;
 }
 
-/* 入力欄・ボタン（Ultra Engine Pro 風） */
+/* Ultra Engine Pro 風ボタン */
 .numBtn {
     width: 34px;
     height: 34px;
@@ -50,7 +50,19 @@ button.mainBtn {
     border-radius: 8px;
 }
 
-/* 結果カード（色分け） */
+/* セレクト（縦を大きく） */
+.thickSelect {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 16px;
+    height: 48px;
+    border: 2px solid #007aff;
+    border-radius: 8px;
+    background: white;
+    box-sizing: border-box;
+}
+
+/* 結果カード */
 .resultCard {
     padding: 10px 12px;
     margin-bottom: 8px;
@@ -60,22 +72,16 @@ button.mainBtn {
     align-items: center;
     font-size: 16px;
 }
-
-/* 0件（グレー） */
 .resultCard.zero {
     background: #f0f0f0;
     border: 1px solid #d0d0d0;
     color: #666;
 }
-
-/* 1件以上（青） */
 .resultCard.low {
     background: #e8f2ff;
     border: 1px solid #7ab4ff;
     color: #004a99;
 }
-
-/* 多件数（緑） */
 .resultCard.high {
     background: #e6ffe6;
     border: 1px solid #66cc66;
@@ -93,7 +99,7 @@ button.mainBtn {
     cursor: pointer;
 }
 
-/* 上位コピー用ボタン */
+/* 上位コピー */
 .topCopyBtn {
     width: 100%;
     padding: 10px;
@@ -128,27 +134,40 @@ button.mainBtn {
     </div>
 </div>
 
-<!-- 辞書 -->
-<div class="card">
-    <label>辞書</label><br>
-    <select id="dictMode" style="width:100%;">
-        <option value="country">国名</option>
-        <option value="capital">首都</option>
-        <option value="both">両方</option>
-    </select>
+<!-- 辞書・0件フィルタ・ソート（横並び） -->
+<div class="card" style="display:flex; gap:10px; align-items:flex-start; flex-wrap:wrap;">
+
+    <div style="flex:1; min-width:120px;">
+        <label style="font-size:14px;">辞書</label>
+        <select id="dictMode" class="thickSelect">
+            <option value="country">国名</option>
+            <option value="capital">首都</option>
+            <option value="both">両方</option>
+        </select>
+    </div>
+
+    <div style="flex:1; min-width:120px;">
+        <label style="font-size:14px;">0件フィルタ</label>
+        <select id="zeroFilter" class="thickSelect">
+            <option value="all">全て表示</option>
+            <option value="exclude">0件を除外</option>
+            <option value="only">0件のみ</option>
+        </select>
+    </div>
+
+    <div style="flex:1; min-width:120px;">
+        <label style="font-size:14px;">ソート</label>
+        <select id="sortMode" class="thickSelect">
+            <option value="gojuon">50音順</option>
+            <option value="asc">少ない順</option>
+            <option value="desc">多い順</option>
+            <option value="random">ランダム</option>
+        </select>
+    </div>
+
 </div>
 
-<!-- 0件フィルタ -->
-<div class="card">
-    <label>0件フィルタ</label><br>
-    <select id="zeroFilter" style="width:100%;">
-        <option value="all">全て表示</option>
-        <option value="exclude">0件を除外</option>
-        <option value="only">0件のみ</option>
-    </select>
-</div>
-
-<!-- 解1つ表示 + 上位コピー（横並び） -->
+<!-- 解1つ表示 + 上位コピー -->
 <div style="display:flex; gap:10px;">
 
     <div class="card" style="flex:1;">
@@ -168,23 +187,12 @@ button.mainBtn {
 
 </div>
 
-<!-- ソート -->
-<div class="card">
-    <label>ソート順</label><br>
-    <select id="sortMode" style="width:100%;">
-        <option value="gojuon">50音順</option>
-        <option value="asc">少ない順</option>
-        <option value="desc">多い順</option>
-        <option value="random">ランダム</option>
-    </select>
-</div>
-
 <!-- 実行ボタン -->
 <div class="card">
     <button class="mainBtn" onclick="runCount()">集計する</button>
 </div>
 
-<!-- 結果カード -->
+<!-- 結果 -->
 <div id="result"></div>
 
 <script src="dictionary.js"></script>
@@ -192,44 +200,40 @@ button.mainBtn {
 <script>
 let lastEntries = [];
 
-// ひらがな → カタカナ
+/* ひらがな→カタカナ */
 function hiraToKata(str) {
     return str.replace(/[\u3041-\u3096]/g, ch =>
         String.fromCharCode(ch.charCodeAt(0) + 0x60)
     );
 }
 
-// 先頭文字の正規化
+/* 先頭文字 */
 function normalizeHead(word) {
     if (!word) return "";
     word = hiraToKata(word);
     return word[0] === "ー" ? "" : word[0];
 }
 
-// 末尾文字の正規化
+/* 末尾文字 */
 function normalizeTail(word) {
     if (!word) return "";
     word = hiraToKata(word);
     let last = word.slice(-1);
-    if (last === "ー" && word.length >= 2) {
-        last = word[word.length - 2];
-    }
+    if (last === "ー" && word.length >= 2) last = word[word.length - 2];
     return last;
 }
 
-// 国数 +
+/* 国数 + / - */
 function incN() {
     const el = document.getElementById("chainN");
     el.value = Number(el.value) + 1;
 }
-
-// 国数 -
 function decN() {
     const el = document.getElementById("chainN");
     if (Number(el.value) > 1) el.value = Number(el.value) - 1;
 }
 
-// 集計（例1つ含む）
+/* 集計（例1つ含む） */
 function countChainsByStartEnd(list, N, startFilter) {
     const result = {};
     const headsSet = new Set();
@@ -257,9 +261,7 @@ function countChainsByStartEnd(list, N, startFilter) {
             const e = normalizeTail(chain[N - 1]);
             const key = `${s}→${e}`;
             result[key].count++;
-            if (!result[key].example) {
-                result[key].example = chain.join(" → ");
-            }
+            if (!result[key].example) result[key].example = chain.join(" → ");
             return;
         }
 
@@ -281,7 +283,7 @@ function countChainsByStartEnd(list, N, startFilter) {
     return result;
 }
 
-// 行コピー（例は含めない）
+/* 行コピー */
 function copyText(btn, text) {
     navigator.clipboard.writeText(text);
     const original = btn.textContent;
@@ -293,7 +295,7 @@ function copyText(btn, text) {
     }, 800);
 }
 
-// 上位N件コピー
+/* 上位N件コピー */
 function copyTopN() {
     const btn = document.getElementById("topCopyBtn");
     const n = Number(document.getElementById("topN").value);
@@ -314,7 +316,7 @@ function copyTopN() {
     }, 800);
 }
 
-// 実行
+/* 実行 */
 function runCount() {
     const resultBox = document.getElementById("result");
 
