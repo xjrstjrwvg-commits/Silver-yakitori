@@ -9,7 +9,7 @@
 <style>
 body {
     font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-    padding: 20px;
+    padding: 16px;
     max-width: 800px;
     margin: auto;
 }
@@ -17,10 +17,10 @@ body {
 /* カード（設定項目） */
 .card {
     background: #fff;
-    padding: 14px;
+    padding: 10px;
     border-radius: 12px;
     box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    margin-bottom: 18px;
+    margin-bottom: 10px;
 }
 
 /* 入力欄・ボタン（Ultra Engine Pro 風） */
@@ -42,7 +42,7 @@ body {
 }
 button.mainBtn {
     width: 100%;
-    padding: 14px;
+    padding: 12px;
     font-size: 20px;
     background: #007aff;
     color: white;
@@ -104,11 +104,6 @@ button.mainBtn {
     border-radius: 8px;
     cursor: pointer;
 }
-
-.error {
-    color: red;
-    font-weight: bold;
-}
 </style>
 </head>
 <body>
@@ -117,7 +112,7 @@ button.mainBtn {
 
 <!-- 国数・開始字・終了字 -->
 <div class="card">
-    <label>国数 / 開始字 / 終了字</label><br><br>
+    <label>国数 / 開始字 / 終了字</label><br>
     <div style="display:flex; align-items:center; gap:20px; flex-wrap:wrap;">
         <div>
             <button onclick="decN()" class="numBtn">−</button>
@@ -135,7 +130,7 @@ button.mainBtn {
 
 <!-- 辞書 -->
 <div class="card">
-    <label>辞書</label><br><br>
+    <label>辞書</label><br>
     <select id="dictMode" style="width:100%;">
         <option value="country">国名</option>
         <option value="capital">首都</option>
@@ -145,7 +140,7 @@ button.mainBtn {
 
 <!-- 0件フィルタ -->
 <div class="card">
-    <label>0件フィルタ</label><br><br>
+    <label>0件フィルタ</label><br>
     <select id="zeroFilter" style="width:100%;">
         <option value="all">全て表示</option>
         <option value="exclude">0件を除外</option>
@@ -153,32 +148,35 @@ button.mainBtn {
     </select>
 </div>
 
-<!-- 解を1つ表示 -->
-<div class="card">
-    <label>
-        <input type="checkbox" id="showExample">
-        解を1つ表示（コピーには含めない）
-    </label>
+<!-- 解1つ表示 + 上位コピー（横並び） -->
+<div style="display:flex; gap:10px;">
+
+    <div class="card" style="flex:1;">
+        <label>
+            <input type="checkbox" id="showExample">
+            解を1つ表示（コピーには含めない）
+        </label>
+    </div>
+
+    <div class="card" style="flex:1;">
+        <label>上位〇件コピー</label>
+        <div style="display:flex; gap:10px; align-items:center;">
+            <input id="topN" type="number" value="10" min="1" style="width:60px;">
+            <button class="topCopyBtn" id="topCopyBtn" onclick="copyTopN()">コピー</button>
+        </div>
+    </div>
+
 </div>
 
 <!-- ソート -->
 <div class="card">
-    <label>ソート順</label><br><br>
+    <label>ソート順</label><br>
     <select id="sortMode" style="width:100%;">
         <option value="gojuon">50音順</option>
         <option value="asc">少ない順</option>
         <option value="desc">多い順</option>
         <option value="random">ランダム</option>
     </select>
-</div>
-
-<!-- 上位〇件コピー -->
-<div class="card">
-    <label>上位〇件コピー</label><br><br>
-    <div style="display:flex; gap:10px; align-items:center;">
-        <input id="topN" type="number" value="10" min="1" style="width:70px; text-align:right;">
-        <button class="topCopyBtn" id="topCopyBtn" onclick="copyTopN()">上位をコピー</button>
-    </div>
 </div>
 
 <!-- 実行ボタン -->
@@ -192,7 +190,7 @@ button.mainBtn {
 <script src="dictionary.js"></script>
 
 <script>
-let lastEntries = []; // ソート後の結果を保持（上位コピー用）
+let lastEntries = [];
 
 // ひらがな → カタカナ
 function hiraToKata(str) {
@@ -208,7 +206,7 @@ function normalizeHead(word) {
     return word[0] === "ー" ? "" : word[0];
 }
 
-// 末尾文字の正規化（長音は直前の文字を使う）
+// 末尾文字の正規化
 function normalizeTail(word) {
     if (!word) return "";
     word = hiraToKata(word);
@@ -231,29 +229,21 @@ function decN() {
     if (Number(el.value) > 1) el.value = Number(el.value) - 1;
 }
 
-// しりとりチェーン集計（通り数＋例1つ）
+// 集計（例1つ含む）
 function countChainsByStartEnd(list, N, startFilter) {
     const result = {};
     const headsSet = new Set();
     const tailsSet = new Set();
 
     for (const w of list) {
-        if (!w) continue;
         headsSet.add(normalizeHead(w));
         tailsSet.add(normalizeTail(w));
     }
 
-    const heads = [];
-    for (const h of headsSet) {
-        if (startFilter && h !== startFilter) continue;
-        heads.push(h);
-    }
-    if (!startFilter) {
-        heads.length = 0;
-        for (const h of headsSet) heads.push(h);
-    }
+    const heads = [...headsSet].filter(h => !startFilter || h === startFilter);
+    if (!startFilter) heads.length = 0, heads.push(...headsSet);
 
-    const tails = Array.from(tailsSet);
+    const tails = [...tailsSet];
 
     for (const h of heads) {
         for (const t of tails) {
@@ -266,9 +256,6 @@ function countChainsByStartEnd(list, N, startFilter) {
             const s = normalizeHead(chain[0]);
             const e = normalizeTail(chain[N - 1]);
             const key = `${s}→${e}`;
-            if (!result[key]) {
-                result[key] = { count: 0, example: null };
-            }
             result[key].count++;
             if (!result[key].example) {
                 result[key].example = chain.join(" → ");
@@ -294,38 +281,36 @@ function countChainsByStartEnd(list, N, startFilter) {
     return result;
 }
 
-// 行単位コピー（例は含めない）
+// 行コピー（例は含めない）
 function copyText(btn, text) {
     navigator.clipboard.writeText(text);
-    const originalText = btn.textContent;
-    const originalBg = btn.style.backgroundColor;
+    const original = btn.textContent;
     btn.textContent = "Copied!";
     btn.style.backgroundColor = "#555";
     setTimeout(() => {
-        btn.textContent = originalText;
-        btn.style.backgroundColor = originalBg || "#007aff";
+        btn.textContent = original;
+        btn.style.backgroundColor = "#007aff";
     }, 800);
 }
 
-// 上位N件コピー（例は含めない）
+// 上位N件コピー
 function copyTopN() {
     const btn = document.getElementById("topCopyBtn");
-    const n = Number(document.getElementById("topN").value) || 0;
+    const n = Number(document.getElementById("topN").value);
     if (!lastEntries.length || n <= 0) return;
 
-    const lines = lastEntries.slice(0, n).map(([key, val]) => {
-        return `${key}　${val.count}通り`;
-    });
+    const lines = lastEntries.slice(0, n).map(([key, val]) =>
+        `${key}　${val.count}通り`
+    );
 
     navigator.clipboard.writeText(lines.join("\n"));
 
-    const originalText = btn.textContent;
-    const originalBg = btn.style.backgroundColor;
+    const original = btn.textContent;
     btn.textContent = "Copied!";
     btn.style.backgroundColor = "#0b8f3a";
     setTimeout(() => {
-        btn.textContent = originalText;
-        btn.style.backgroundColor = originalBg || "#34c759";
+        btn.textContent = original;
+        btn.style.backgroundColor = "#34c759";
     }, 800);
 }
 
@@ -360,7 +345,7 @@ function runCount() {
         if (dictMode === "both")    list = [...window.DICT.country, ...window.DICT.capital];
 
         const res = countChainsByStartEnd(list, N, startChar || null);
-        let entries = Object.entries(res); // [key, {count, example}]
+        let entries = Object.entries(res);
 
         if (endChar) entries = entries.filter(([key]) => key.endsWith(endChar));
 
@@ -372,7 +357,7 @@ function runCount() {
         else if (sortMode === "desc") entries.sort((a, b) => b[1].count - a[1].count);
         else if (sortMode === "random") entries.sort(() => Math.random() - 0.5);
 
-        lastEntries = entries; // 上位コピー用に保存
+        lastEntries = entries;
 
         let outHTML = "";
 
@@ -384,12 +369,9 @@ function runCount() {
             else if (count >= 100) cls = "high";
 
             let label = `${key}　${count}通り`;
-            let exampleHtml = "";
-            if (showExample && example) {
-                exampleHtml = `（例：${example}）`;
-            }
+            let exampleHtml = showExample && example ? `（例：${example}）` : "";
 
-            const copyTextValue = `${key}　${count}通り`; // 例は含めない
+            const copyTextValue = `${key}　${count}通り`;
 
             outHTML += `
                 <div class="resultCard ${cls}">
