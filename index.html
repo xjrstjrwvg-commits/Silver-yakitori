@@ -14,7 +14,7 @@ body {
     margin: auto;
 }
 
-/* カード（項目ごとに分割） */
+/* カード（設定項目） */
 .card {
     background: #fff;
     padding: 14px;
@@ -23,29 +23,22 @@ body {
     margin-bottom: 18px;
 }
 
-/* 結果はシンプル枠 */
-.resultBox {
-    border: 1px solid #ccc;
-    padding: 14px;
-    border-radius: 8px;
-    background: #fafafa;
-    white-space: pre-wrap;
-}
-
-/* ボタン・入力 */
+/* 入力欄・ボタン（Ultra Engine Pro 風） */
 .numBtn {
-    width: 40px;
-    height: 40px;
-    font-size: 22px;
+    width: 34px;
+    height: 34px;
+    font-size: 20px;
     border: none;
-    border-radius: 8px;
+    border-radius: 6px;
     background: #007aff;
     color: white;
 }
 .smallInput {
-    width: 48px;
+    width: 34px;
+    height: 30px;
+    font-size: 17px;
     text-align: center;
-    font-size: 20px;
+    border-radius: 6px;
 }
 button.mainBtn {
     width: 100%;
@@ -56,6 +49,49 @@ button.mainBtn {
     border: none;
     border-radius: 8px;
 }
+
+/* 結果カード（色分け） */
+.resultCard {
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    border-radius: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 16px;
+}
+
+/* 0件（グレー） */
+.resultCard.zero {
+    background: #f0f0f0;
+    border: 1px solid #d0d0d0;
+    color: #666;
+}
+
+/* 1件以上（青） */
+.resultCard.low {
+    background: #e8f2ff;
+    border: 1px solid #7ab4ff;
+    color: #004a99;
+}
+
+/* 多件数（緑） */
+.resultCard.high {
+    background: #e6ffe6;
+    border: 1px solid #66cc66;
+    color: #006600;
+}
+
+/* Copy ボタン */
+.copyBtn {
+    background: #007aff;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 14px;
+}
+
 .error {
     color: red;
     font-weight: bold;
@@ -66,26 +102,21 @@ button.mainBtn {
 
 <h2>国名しりとり出題ツール</h2>
 
-<!-- 国数・開始字・終了字（横並び） -->
+<!-- 国数・開始字・終了字 -->
 <div class="card">
     <label>国数 / 開始字 / 終了字</label><br><br>
-
     <div style="display:flex; align-items:center; gap:20px; flex-wrap:wrap;">
-
         <div>
             <button onclick="decN()" class="numBtn">−</button>
             <input id="chainN" type="number" value="3" min="1" class="smallInput">
             <button onclick="incN()" class="numBtn">＋</button>
         </div>
-
         <div>
             <input id="startChar" type="text" maxlength="1" class="smallInput" placeholder="開始">
         </div>
-
         <div>
             <input id="endChar" type="text" maxlength="1" class="smallInput" placeholder="終了">
         </div>
-
     </div>
 </div>
 
@@ -125,8 +156,8 @@ button.mainBtn {
     <button class="mainBtn" onclick="runCount()">集計する</button>
 </div>
 
-<!-- 結果（シンプル枠） -->
-<div class="resultBox" id="result">ここに結果が表示されます</div>
+<!-- 結果カード -->
+<div id="result"></div>
 
 <script src="dictionary.js"></script>
 
@@ -149,83 +180,18 @@ function normalizeHead(word) {
 function normalizeTail(word) {
     if (!word) return "";
     word = hiraToKata(word);
-
     let last = word.slice(-1);
-
-    if (last === "ー") {
-        if (word.length >= 2) {
-            last = word[word.length - 2];
-        }
+    if (last === "ー" && word.length >= 2) {
+        last = word[word.length - 2];
     }
     return last;
 }
-
-// 国数 ±
-function incN() {
-    const el = document.getElementById("chainN");
-    el.value = Number(el.value) + 1;
-}
-function decN() {
-    const el = document.getElementById("chainN");
-    if (Number(el.value) > 1) el.value = Number(el.value) - 1;
+    return last;
 }
 
-// 0件も含めた開始字×終了字の表を作る
-function countChainsByStartEnd(list, N, startFilter) {
-    const result = {};
-
-    const headsSet = new Set();
-    const tailsSet = new Set();
-
-    for (const w of list) {
-        if (!w) continue;
-        headsSet.add(normalizeHead(w));
-        tailsSet.add(normalizeTail(w));
-    }
-
-    const heads = [];
-    for (const h of headsSet) {
-        if (startFilter && h !== startFilter) continue;
-        heads.push(h);
-    }
-    if (!startFilter) {
-        heads.length = 0;
-        for (const h of headsSet) heads.push(h);
-    }
-
-    const tails = Array.from(tailsSet);
-
-    for (const h of heads) {
-        for (const t of tails) {
-            result[`${h}→${t}`] = 0;
-        }
-    }
-
-    function dfs(chain) {
-        if (chain.length === N) {
-            const s = normalizeHead(chain[0]);
-            const e = normalizeTail(chain[N - 1]);
-            const key = `${s}→${e}`;
-            if (result[key] !== undefined) result[key]++;
-            return;
-        }
-
-        const last = chain[chain.length - 1];
-        const nextHead = normalizeTail(last);
-
-        for (const w of list) {
-            if (chain.includes(w)) continue;
-            if (normalizeHead(w) !== nextHead) continue;
-            dfs([...chain, w]);
-        }
-    }
-
-    for (const w of list) {
-        if (startFilter && normalizeHead(w) !== startFilter) continue;
-        dfs([w]);
-    }
-
-    return result;
+// Copy ボタン
+function copyText(text) {
+    navigator.clipboard.writeText(text);
 }
 
 // 実行
@@ -233,11 +199,11 @@ function runCount() {
     const resultBox = document.getElementById("result");
 
     if (!window.DICT || !window.DICT.country) {
-        resultBox.innerHTML = "<span class='error'>辞書（dictionary.js）が読み込まれていません。</span>";
+        resultBox.innerHTML = "<div class='resultCard zero'>辞書（dictionary.js）が読み込まれていません。</div>";
         return;
     }
 
-    resultBox.textContent = "集計中…";
+    resultBox.innerHTML = "<div class='resultCard low'>集計中...</div>";
 
     setTimeout(() => {
         const N = Number(document.getElementById("chainN").value);
@@ -260,32 +226,32 @@ function runCount() {
         const res = countChainsByStartEnd(list, N, startChar || null);
         let entries = Object.entries(res);
 
-        if (endChar) {
-            entries = entries.filter(([key]) => key.endsWith(endChar));
-        }
+        if (endChar) entries = entries.filter(([key]) => key.endsWith(endChar));
 
-        if (zeroFilter === "exclude") {
-            entries = entries.filter(([k, v]) => v > 0);
-        } else if (zeroFilter === "only") {
-            entries = entries.filter(([k, v]) => v === 0);
-        }
+        if (zeroFilter === "exclude") entries = entries.filter(([k, v]) => v > 0);
+        else if (zeroFilter === "only") entries = entries.filter(([k, v]) => v === 0);
 
-        if (sortMode === "gojuon") {
-            entries.sort((a, b) => a[0].localeCompare(b[0], "ja"));
-        } else if (sortMode === "asc") {
-            entries.sort((a, b) => a[1] - b[1]);
-        } else if (sortMode === "desc") {
-            entries.sort((a, b) => b[1] - a[1]);
-        } else if (sortMode === "random") {
-            entries.sort(() => Math.random() - 0.5);
-        }
+        if (sortMode === "gojuon") entries.sort((a, b) => a[0].localeCompare(b[0], "ja"));
+        else if (sortMode === "asc") entries.sort((a, b) => a[1] - b[1]);
+        else if (sortMode === "desc") entries.sort((a, b) => b[1] - a[1]);
+        else if (sortMode === "random") entries.sort(() => Math.random() - 0.5);
 
-        let out = "";
+        let outHTML = "";
+
         for (const [key, val] of entries) {
-            out += `${key}　${val}通り\n`;
+            let cls = "low";
+            if (val === 0) cls = "zero";
+            else if (val >= 100) cls = "high";
+
+            outHTML += `
+                <div class="resultCard ${cls}">
+                    <span>${key}　${val}通り</span>
+                    <button class="copyBtn" onclick="copyText('${key}　${val}通り')">Copy</button>
+                </div>
+            `;
         }
 
-        resultBox.textContent = out || "該当なし";
+        resultBox.innerHTML = outHTML || "<div class='resultCard zero'>該当なし</div>";
     }, 50);
 }
 </script>
