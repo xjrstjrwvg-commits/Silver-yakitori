@@ -2,11 +2,17 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- ★ ダブルタップズーム防止（iPhone Safari） -->
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
 <title>国名しりとり出題ツール</title>
 
 <style>
+html, body {
+    touch-action: manipulation; /* ★ ダブルタップ防止 */
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, sans-serif;
     padding: 16px;
