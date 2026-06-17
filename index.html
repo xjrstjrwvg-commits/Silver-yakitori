@@ -10,7 +10,7 @@
 body {
     font-family: -apple-system, BlinkMacSystemFont, sans-serif;
     padding: 20px;
-    max-width: 700px;
+    max-width: 800px;
     margin: auto;
 }
 .card {
@@ -61,7 +61,9 @@ pre {
 
 <div class="card">
 
+    <!-- 上段：国数 + 開始字 + 終了字（ウルトラエンジン風） -->
     <div style="display:flex; align-items:center; gap:20px; flex-wrap:wrap;">
+
         <div>
             <label>国数</label><br>
             <button onclick="decN()" class="numBtn">−</button>
@@ -82,6 +84,7 @@ pre {
 
     <br>
 
+    <!-- 辞書選択 -->
     <label>辞書</label><br>
     <select id="dictMode" style="width:100%;">
         <option value="country">国名</option>
@@ -91,6 +94,7 @@ pre {
 
     <br><br>
 
+    <!-- 0件フィルタ -->
     <label>0件フィルタ</label><br>
     <select id="zeroFilter" style="width:100%;">
         <option value="all">全て表示</option>
@@ -100,6 +104,7 @@ pre {
 
     <br><br>
 
+    <!-- ソート順 -->
     <label>ソート順</label><br>
     <select id="sortMode" style="width:100%;">
         <option value="gojuon">50音順</option>
@@ -117,22 +122,17 @@ pre {
     <pre id="result">ここに結果が表示されます</pre>
 </div>
 
-<!-- 辞書読み込み -->
 <script src="dictionary.js"></script>
 
 <script>
-// ===============================
 // ひらがな → カタカナ
-// ===============================
 function hiraToKata(str) {
     return str.replace(/[\u3041-\u3096]/g, ch =>
         String.fromCharCode(ch.charCodeAt(0) + 0x60)
     );
 }
 
-// ===============================
-// 国数 ±
-// ===============================
+// 国数 ± ボタン
 function incN() {
     const el = document.getElementById("chainN");
     el.value = Number(el.value) + 1;
@@ -142,18 +142,49 @@ function decN() {
     if (Number(el.value) > 1) el.value = Number(el.value) - 1;
 }
 
-// ===============================
-// Nカ国しりとり集計
-// ===============================
+// Nカ国しりとりチェーン集計（0件も事前に生成）
 function countChainsByStartEnd(list, N, startFilter) {
     const result = {};
+
+    // 開始字・終了字の候補を抽出
+    const headsSet = new Set();
+    const tailsSet = new Set();
+    for (const w of list) {
+        if (!w || typeof w !== "string") continue;
+        headsSet.add(w[0]);
+        tailsSet.add(w.slice(-1));
+    }
+
+    // 開始字フィルタを反映
+    const heads = [];
+    for (const h of headsSet) {
+        if (startFilter && h !== startFilter) continue;
+        heads.push(h);
+    }
+    // フィルタがない場合は全て
+    if (!startFilter) {
+        heads.length = 0;
+        for (const h of headsSet) heads.push(h);
+    }
+
+    const tails = Array.from(tailsSet);
+
+    // 全開始字×終了字を 0 で初期化（0件も保持）
+    for (const h of heads) {
+        for (const t of tails) {
+            const key = `${h}→${t}`;
+            result[key] = 0;
+        }
+    }
 
     function dfs(chain) {
         if (chain.length === N) {
             const s = chain[0][0];
-            const e = chain[N-1].slice(-1);
+            const e = chain[N - 1].slice(-1);
             const key = `${s}→${e}`;
-            if (!result[key]) result[key] = 0;
+            if (result[key] === undefined) {
+                result[key] = 0;
+            }
             result[key]++;
             return;
         }
@@ -176,13 +207,10 @@ function countChainsByStartEnd(list, N, startFilter) {
     return result;
 }
 
-// ===============================
 // 実行
-// ===============================
 function runCount() {
     const resultBox = document.getElementById("result");
 
-    // 辞書チェック
     if (!window.DICT || !window.DICT.country) {
         resultBox.innerHTML = "<span class='error'>辞書（dictionary.js）が読み込まれていません。</span>";
         return;
@@ -206,21 +234,24 @@ function runCount() {
         let list = [];
         if (dictMode === "country") list = window.DICT.country;
         if (dictMode === "capital") list = window.DICT.capital;
-        if (dictMode === "both") list = [...window.DICT.country, ...window.DICT.capital];
+        if (dictMode === "both")    list = [...window.DICT.country, ...window.DICT.capital];
 
         const res = countChainsByStartEnd(list, N, startChar || null);
         let entries = Object.entries(res);
 
+        // 終了字フィルタ
         if (endChar) {
             entries = entries.filter(([key]) => key.endsWith(endChar));
         }
 
+        // 0件フィルタ
         if (zeroFilter === "exclude") {
             entries = entries.filter(([k, v]) => v > 0);
         } else if (zeroFilter === "only") {
             entries = entries.filter(([k, v]) => v === 0);
         }
 
+        // ソート
         if (sortMode === "gojuon") {
             entries.sort((a, b) => a[0].localeCompare(b[0], "ja"));
         } else if (sortMode === "asc") {
