@@ -13,13 +13,26 @@ body {
     max-width: 800px;
     margin: auto;
 }
+
+/* カード（項目ごとに分割） */
 .card {
     background: #fff;
-    padding: 16px;
+    padding: 14px;
     border-radius: 12px;
     box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    margin-bottom: 20px;
+    margin-bottom: 18px;
 }
+
+/* 結果はシンプル枠 */
+.resultBox {
+    border: 1px solid #ccc;
+    padding: 14px;
+    border-radius: 8px;
+    background: #fafafa;
+    white-space: pre-wrap;
+}
+
+/* ボタン・入力 */
 .numBtn {
     width: 40px;
     height: 40px;
@@ -43,12 +56,6 @@ button.mainBtn {
     border: none;
     border-radius: 8px;
 }
-pre {
-    background: #f5f5f5;
-    padding: 16px;
-    border-radius: 8px;
-    white-space: pre-wrap;
-}
 .error {
     color: red;
     font-weight: bold;
@@ -59,68 +66,67 @@ pre {
 
 <h2>国名しりとり出題ツール</h2>
 
+<!-- 国数・開始字・終了字（横並び） -->
 <div class="card">
+    <label>国数 / 開始字 / 終了字</label><br><br>
 
-    <!-- ULTRA ENGINE 風 上段 -->
     <div style="display:flex; align-items:center; gap:20px; flex-wrap:wrap;">
 
         <div>
-            <label>国数</label><br>
             <button onclick="decN()" class="numBtn">−</button>
             <input id="chainN" type="number" value="3" min="1" class="smallInput">
             <button onclick="incN()" class="numBtn">＋</button>
         </div>
 
         <div>
-            <label>開始字</label><br>
-            <input id="startChar" type="text" maxlength="1" class="smallInput">
+            <input id="startChar" type="text" maxlength="1" class="smallInput" placeholder="開始">
         </div>
 
         <div>
-            <label>終了字</label><br>
-            <input id="endChar" type="text" maxlength="1" class="smallInput">
+            <input id="endChar" type="text" maxlength="1" class="smallInput" placeholder="終了">
         </div>
+
     </div>
+</div>
 
-    <br>
-
-    <!-- 辞書選択 -->
-    <label>辞書</label><br>
+<!-- 辞書 -->
+<div class="card">
+    <label>辞書</label><br><br>
     <select id="dictMode" style="width:100%;">
         <option value="country">国名</option>
         <option value="capital">首都</option>
         <option value="both">両方</option>
     </select>
+</div>
 
-    <br><br>
-
-    <!-- 0件フィルタ -->
-    <label>0件フィルタ</label><br>
+<!-- 0件フィルタ -->
+<div class="card">
+    <label>0件フィルタ</label><br><br>
     <select id="zeroFilter" style="width:100%;">
         <option value="all">全て表示</option>
         <option value="exclude">0件を除外</option>
         <option value="only">0件のみ</option>
     </select>
+</div>
 
-    <br><br>
-
-    <!-- ソート -->
-    <label>ソート順</label><br>
+<!-- ソート -->
+<div class="card">
+    <label>ソート順</label><br><br>
     <select id="sortMode" style="width:100%;">
         <option value="gojuon">50音順</option>
         <option value="asc">少ない順</option>
         <option value="desc">多い順</option>
         <option value="random">ランダム</option>
     </select>
+</div>
 
-    <br><br>
-
+<!-- 実行ボタン -->
+<div class="card">
     <button class="mainBtn" onclick="runCount()">集計する</button>
 </div>
 
-<div class="card">
-    <pre id="result">ここに結果が表示されます</pre>
-</div>
+<!-- 結果（シンプル枠） -->
+<div class="resultBox" id="result">ここに結果が表示されます</div>
 
 <script src="dictionary.js"></script>
 
@@ -132,7 +138,7 @@ function hiraToKata(str) {
     );
 }
 
-// 先頭文字の正規化（長音は来ないので単純）
+// 先頭文字の正規化
 function normalizeHead(word) {
     if (!word) return "";
     word = hiraToKata(word);
@@ -168,16 +174,15 @@ function decN() {
 function countChainsByStartEnd(list, N, startFilter) {
     const result = {};
 
-    // 開始字・終了字候補を抽出
     const headsSet = new Set();
     const tailsSet = new Set();
+
     for (const w of list) {
         if (!w) continue;
         headsSet.add(normalizeHead(w));
         tailsSet.add(normalizeTail(w));
     }
 
-    // 開始字フィルタ
     const heads = [];
     for (const h of headsSet) {
         if (startFilter && h !== startFilter) continue;
@@ -190,14 +195,12 @@ function countChainsByStartEnd(list, N, startFilter) {
 
     const tails = Array.from(tailsSet);
 
-    // 全組み合わせを 0 で初期化
     for (const h of heads) {
         for (const t of tails) {
             result[`${h}→${t}`] = 0;
         }
     }
 
-    // DFS
     function dfs(chain) {
         if (chain.length === N) {
             const s = normalizeHead(chain[0]);
@@ -257,19 +260,16 @@ function runCount() {
         const res = countChainsByStartEnd(list, N, startChar || null);
         let entries = Object.entries(res);
 
-        // 終了字フィルタ
         if (endChar) {
             entries = entries.filter(([key]) => key.endsWith(endChar));
         }
 
-        // 0件フィルタ
         if (zeroFilter === "exclude") {
             entries = entries.filter(([k, v]) => v > 0);
         } else if (zeroFilter === "only") {
             entries = entries.filter(([k, v]) => v === 0);
         }
 
-        // ソート
         if (sortMode === "gojuon") {
             entries.sort((a, b) => a[0].localeCompare(b[0], "ja"));
         } else if (sortMode === "asc") {
