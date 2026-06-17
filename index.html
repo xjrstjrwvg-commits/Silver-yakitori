@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>国名しりとり出題ツール</title>
+
+<style>
+body {
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    padding: 20px;
+    max-width: 700px;
+    margin: auto;
+}
+.card {
+    background: #fff;
+    padding: 16px;
+    border-radius: 12px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+.numBtn {
+    width: 40px;
+    height: 40px;
+    font-size: 22px;
+    border: none;
+    border-radius: 8px;
+    background: #007aff;
+    color: white;
+}
+.smallInput {
+    width: 60px;
+    text-align: center;
+    font-size: 20px;
+}
+button.mainBtn {
+    width: 100%;
+    padding: 14px;
+    font-size: 20px;
+    background: #007aff;
+    color: white;
+    border: none;
+    border-radius: 8px;
+}
+pre {
+    background: #f5f5f5;
+    padding: 16px;
+    border-radius: 8px;
+    white-space: pre-wrap;
+}
+.error {
+    color: red;
+    font-weight: bold;
+}
+</style>
+</head>
+<body>
+
+<h2>国名しりとり出題ツール</h2>
+
+<div class="card">
+
+    <div style="display:flex; align-items:center; gap:20px; flex-wrap:wrap;">
+        <div>
+            <label>国数</label><br>
+            <button onclick="decN()" class="numBtn">−</button>
+            <input id="chainN" type="number" value="3" min="1" class="smallInput">
+            <button onclick="incN()" class="numBtn">＋</button>
+        </div>
+
+        <div>
+            <label>開始字</label><br>
+            <input id="startChar" type="text" maxlength="1" class="smallInput">
+        </div>
+
+        <div>
+            <label>終了字</label><br>
+            <input id="endChar" type="text" maxlength="1" class="smallInput">
+        </div>
+    </div>
+
+    <br>
+
+    <label>辞書</label><br>
+    <select id="dictMode" style="width:100%;">
+        <option value="country">国名</option>
+        <option value="capital">首都</option>
+        <option value="both">両方</option>
+    </select>
+
+    <br><br>
+
+    <label>0件フィルタ</label><br>
+    <select id="zeroFilter" style="width:100%;">
+        <option value="all">全て表示</option>
+        <option value="exclude">0件を除外</option>
+        <option value="only">0件のみ</option>
+    </select>
+
+    <br><br>
+
+    <label>ソート順</label><br>
+    <select id="sortMode" style="width:100%;">
+        <option value="gojuon">50音順</option>
+        <option value="asc">少ない順</option>
+        <option value="desc">多い順</option>
+        <option value="random">ランダム</option>
+    </select>
+
+    <br><br>
+
+    <button class="mainBtn" onclick="runCount()">集計する</button>
+</div>
+
+<div class="card">
+    <pre id="result">ここに結果が表示されます</pre>
+</div>
+
+<!-- 辞書読み込み -->
+<script src="dictionary.js"></script>
+
+<script>
+// ===============================
+// ひらがな → カタカナ
+// ===============================
+function hiraToKata(str) {
+    return str.replace(/[\u3041-\u3096]/g, ch =>
+        String.fromCharCode(ch.charCodeAt(0) + 0x60)
+    );
+}
+
+// ===============================
+// 国数 ±
+// ===============================
+function incN() {
+    const el = document.getElementById("chainN");
+    el.value = Number(el.value) + 1;
+}
+function decN() {
+    const el = document.getElementById("chainN");
+    if (Number(el.value) > 1) el.value = Number(el.value) - 1;
+}
+
+// ===============================
+// Nカ国しりとり集計
+// ===============================
+function countChainsByStartEnd(list, N, startFilter) {
+    const result = {};
+
+    function dfs(chain) {
+        if (chain.length === N) {
+            const s = chain[0][0];
+            const e = chain[N-1].slice(-1);
+            const key = `${s}→${e}`;
+            if (!result[key]) result[key] = 0;
+            result[key]++;
+            return;
+        }
+
+        const last = chain[chain.length - 1];
+        const nextHead = last.slice(-1);
+
+        for (const w of list) {
+            if (chain.includes(w)) continue;
+            if (!w.startsWith(nextHead)) continue;
+            dfs([...chain, w]);
+        }
+    }
+
+    for (const w of list) {
+        if (startFilter && !w.startsWith(startFilter)) continue;
+        dfs([w]);
+    }
+
+    return result;
+}
+
+// ===============================
+// 実行
+// ===============================
+function runCount() {
+    const resultBox = document.getElementById("result");
+
+    // 辞書チェック
+    if (!window.DICT || !window.DICT.country) {
+        resultBox.innerHTML = "<span class='error'>辞書（dictionary.js）が読み込まれていません。</span>";
+        return;
+    }
+
+    resultBox.textContent = "集計中…";
+
+    setTimeout(() => {
+        const N = Number(document.getElementById("chainN").value);
+        const dictMode = document.getElementById("dictMode").value;
+
+        let startChar = document.getElementById("startChar").value.trim();
+        let endChar   = document.getElementById("endChar").value.trim();
+
+        if (startChar) startChar = hiraToKata(startChar);
+        if (endChar)   endChar   = hiraToKata(endChar);
+
+        const zeroFilter = document.getElementById("zeroFilter").value;
+        const sortMode   = document.getElementById("sortMode").value;
+
+        let list = [];
+        if (dictMode === "country") list = window.DICT.country;
+        if (dictMode === "capital") list = window.DICT.capital;
+        if (dictMode === "both") list = [...window.DICT.country, ...window.DICT.capital];
+
+        const res = countChainsByStartEnd(list, N, startChar || null);
+        let entries = Object.entries(res);
+
+        if (endChar) {
+            entries = entries.filter(([key]) => key.endsWith(endChar));
+        }
+
+        if (zeroFilter === "exclude") {
+            entries = entries.filter(([k, v]) => v > 0);
+        } else if (zeroFilter === "only") {
+            entries = entries.filter(([k, v]) => v === 0);
+        }
+
+        if (sortMode === "gojuon") {
+            entries.sort((a, b) => a[0].localeCompare(b[0], "ja"));
+        } else if (sortMode === "asc") {
+            entries.sort((a, b) => a[1] - b[1]);
+        } else if (sortMode === "desc") {
+            entries.sort((a, b) => b[1] - a[1]);
+        } else if (sortMode === "random") {
+            entries.sort(() => Math.random() - 0.5);
+        }
+
+        let out = "";
+        for (const [key, val] of entries) {
+            out += `${key}　${val}通り\n`;
+        }
+
+        resultBox.textContent = out || "該当なし";
+    }, 50);
+}
+</script>
+
+</body>
+</html>
