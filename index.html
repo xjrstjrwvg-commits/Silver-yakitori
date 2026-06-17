@@ -139,23 +139,6 @@ button.mainBtn {
         <option value="only">0件のみ</option>
     </select>
 </div>
-
-<!-- ソート -->
-<div class="card">
-    <label>ソート順</label><br><br>
-    <select id="sortMode" style="width:100%;">
-        <option value="gojuon">50音順</option>
-        <option value="asc">少ない順</option>
-        <option value="desc">多い順</option>
-        <option value="random">ランダム</option>
-    </select>
-</div>
-
-<!-- 実行ボタン -->
-<div class="card">
-    <button class="mainBtn" onclick="runCount()">集計する</button>
-</div>
-
 <!-- 結果カード -->
 <div id="result"></div>
 
@@ -186,7 +169,74 @@ function normalizeTail(word) {
     }
     return last;
 }
-    return last;
+
+// 国数 +
+function incN() {
+    const el = document.getElementById("chainN");
+    el.value = Number(el.value) + 1;
+}
+
+// 国数 -
+function decN() {
+    const el = document.getElementById("chainN");
+    if (Number(el.value) > 1) el.value = Number(el.value) - 1;
+}
+
+// しりとりチェーン集計
+function countChainsByStartEnd(list, N, startFilter) {
+    const result = {};
+    const headsSet = new Set();
+    const tailsSet = new Set();
+
+    for (const w of list) {
+        if (!w) continue;
+        headsSet.add(normalizeHead(w));
+        tailsSet.add(normalizeTail(w));
+    }
+
+    const heads = [];
+    for (const h of headsSet) {
+        if (startFilter && h !== startFilter) continue;
+        heads.push(h);
+    }
+    if (!startFilter) {
+        heads.length = 0;
+        for (const h of headsSet) heads.push(h);
+    }
+
+    const tails = Array.from(tailsSet);
+
+    for (const h of heads) {
+        for (const t of tails) {
+            result[`${h}→${t}`] = 0;
+        }
+    }
+
+    function dfs(chain) {
+        if (chain.length === N) {
+            const s = normalizeHead(chain[0]);
+            const e = normalizeTail(chain[N - 1]);
+            const key = `${s}→${e}`;
+            if (result[key] !== undefined) result[key]++;
+            return;
+        }
+
+        const last = chain[chain.length - 1];
+        const nextHead = normalizeTail(last);
+
+        for (const w of list) {
+            if (chain.includes(w)) continue;
+            if (normalizeHead(w) !== nextHead) continue;
+            dfs([...chain, w]);
+        }
+    }
+
+    for (const w of list) {
+        if (startFilter && normalizeHead(w) !== startFilter) continue;
+        dfs([w]);
+    }
+
+    return result;
 }
 
 // Copy ボタン
