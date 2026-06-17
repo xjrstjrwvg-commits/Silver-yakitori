@@ -61,7 +61,7 @@ pre {
 
 <div class="card">
 
-    <!-- 上段：国数 + 開始字 + 終了字（ウルトラエンジン風） -->
+    <!-- ULTRA ENGINE 風 上段 -->
     <div style="display:flex; align-items:center; gap:20px; flex-wrap:wrap;">
 
         <div>
@@ -104,7 +104,7 @@ pre {
 
     <br><br>
 
-    <!-- ソート順 -->
+    <!-- ソート -->
     <label>ソート順</label><br>
     <select id="sortMode" style="width:100%;">
         <option value="gojuon">50音順</option>
@@ -132,7 +132,7 @@ function hiraToKata(str) {
     );
 }
 
-// 国数 ± ボタン
+// 国数 ±
 function incN() {
     const el = document.getElementById("chainN");
     el.value = Number(el.value) + 1;
@@ -142,26 +142,25 @@ function decN() {
     if (Number(el.value) > 1) el.value = Number(el.value) - 1;
 }
 
-// Nカ国しりとりチェーン集計（0件も事前に生成）
+// 0件も含めた開始字×終了字の表を作る
 function countChainsByStartEnd(list, N, startFilter) {
     const result = {};
 
-    // 開始字・終了字の候補を抽出
+    // 開始字・終了字候補を抽出
     const headsSet = new Set();
     const tailsSet = new Set();
     for (const w of list) {
-        if (!w || typeof w !== "string") continue;
+        if (!w) continue;
         headsSet.add(w[0]);
         tailsSet.add(w.slice(-1));
     }
 
-    // 開始字フィルタを反映
+    // 開始字フィルタ
     const heads = [];
     for (const h of headsSet) {
         if (startFilter && h !== startFilter) continue;
         heads.push(h);
     }
-    // フィルタがない場合は全て
     if (!startFilter) {
         heads.length = 0;
         for (const h of headsSet) heads.push(h);
@@ -169,23 +168,20 @@ function countChainsByStartEnd(list, N, startFilter) {
 
     const tails = Array.from(tailsSet);
 
-    // 全開始字×終了字を 0 で初期化（0件も保持）
+    // 全組み合わせを 0 で初期化（0件も保持）
     for (const h of heads) {
         for (const t of tails) {
-            const key = `${h}→${t}`;
-            result[key] = 0;
+            result[`${h}→${t}`] = 0;
         }
     }
 
+    // DFS
     function dfs(chain) {
         if (chain.length === N) {
             const s = chain[0][0];
             const e = chain[N - 1].slice(-1);
             const key = `${s}→${e}`;
-            if (result[key] === undefined) {
-                result[key] = 0;
-            }
-            result[key]++;
+            if (result[key] !== undefined) result[key]++;
             return;
         }
 
